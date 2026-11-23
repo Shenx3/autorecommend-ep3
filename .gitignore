@@ -1,0 +1,11 @@
+.env
+certs/
+*.pem
+artifacts/model.joblib
+model.tar.gz
+model/model.tar.gz
+events.csv
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/

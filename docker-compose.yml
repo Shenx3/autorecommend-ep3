@@ -1,0 +1,71 @@
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASS}
+    ports:
+      - "15672:15672"   # panel web de RabbitMQ (usuario/clave del .env)
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+    restart: unless-stopped
+
+  api:
+    build: ./api
+    env_file: .env
+    environment:
+      RABBIT_HOST: rabbitmq
+    volumes:
+      - ./artifacts:/artifacts:ro
+      - data:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  consumer:
+    build: ./api
+    command: ["python", "consumer.py"]
+    env_file: .env
+    environment:
+      RABBIT_HOST: rabbitmq
+    volumes:
+      - data:/data
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    restart: unless-stopped
+
+  dashboard:
+    build: ./dashboard
+    env_file: .env
+    environment:
+      API_URL: http://api:8000
+    volumes:
+      - ./artifacts:/artifacts:ro
+      - data:/data
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./certs:/certs:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  data:
