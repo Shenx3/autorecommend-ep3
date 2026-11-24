@@ -14,7 +14,7 @@ import urllib3
 urllib3.disable_warnings()  # certificado autofirmado
 
 BASE_URL = os.getenv("BASE_URL")
-KEY = {"x-api-key": os.getenv("API_KEY", "")}
+KEY = {"x-api-key": os.getenv("LIVE_API_KEY", "")}
 pytestmark = pytest.mark.skipif(not BASE_URL, reason="Define BASE_URL para correr las pruebas de integracion")
 
 
