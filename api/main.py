@@ -7,6 +7,8 @@ Endpoints:
 
 Seguridad: API Key (header x-api-key), rate limiting por IP, validacion estricta de
 parametros, la respuesta no expone scores internos y hay fallback a Top Sellers.
+Optimizacion: cache en memoria con TTL; su clave incluye el historial del usuario,
+asi un evento nuevo invalida la entrada automaticamente.
 """
 import json
 import os
@@ -32,6 +34,8 @@ AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 ENDPOINT_NAME = os.getenv("SAGEMAKER_ENDPOINT", "autorecommend-endpoint")
 SAGEMAKER_TIMEOUT = float(os.getenv("SAGEMAKER_TIMEOUT", "2"))
 RATE_LIMIT = os.getenv("RATE_LIMIT", "100/minute")
+CACHE_TTL = float(os.getenv("CACHE_TTL", "60"))  # segundos; 0 desactiva la cache
+CACHE_MAX = 5000
 RABBIT_HOST = os.getenv("RABBIT_HOST", "rabbitmq")
 RABBIT_USER = os.getenv("RABBIT_USER", "guest")
 RABBIT_PASS = os.getenv("RABBIT_PASS", "guest")
@@ -58,7 +62,7 @@ limiter = Limiter(key_func=client_ip)
 app = FastAPI(
     title="AutoRecommend AI",
     description="API de recomendacion de productos para ShopFast (EP3).",
-    version="1.0.0",
+    version="1.1.0",
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -69,6 +73,24 @@ api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
 def check_key(key: str | None = Depends(api_key_header)) -> None:
     if key is None or not secrets.compare_digest(key, API_KEY):
         raise HTTPException(status_code=401, detail="API Key invalida o ausente")
+
+
+# --- Cache en memoria con TTL ---------------------------------------------------
+_cache: dict[tuple, tuple[float, list[dict]]] = {}
+
+
+def cache_get(key: tuple) -> list[dict] | None:
+    entry = _cache.get(key)
+    if entry and time.monotonic() - entry[0] < CACHE_TTL:
+        return entry[1]
+    _cache.pop(key, None)
+    return None
+
+
+def cache_set(key: tuple, items: list[dict]) -> None:
+    if len(_cache) >= CACHE_MAX:
+        _cache.clear()
+    _cache[key] = (time.monotonic(), items)
 
 
 # --- Acceso al modelo ---------------------------------------------------------
@@ -130,9 +152,27 @@ def recommend(request: Request, user_id: UUID, n: int = Query(10, ge=1, le=20)):
     """Devuelve los `n` productos con mayor probabilidad de compra para el usuario.
 
     Si el endpoint de SageMaker no responde a tiempo, se entrega la lista Top Sellers.
+    El resultado del modelo se guarda en cache; un evento nuevo del usuario la invalida.
     """
     t0 = time.perf_counter()
-    views, bought = user_history(str(user_id))
+    uid = str(user_id)
+    views, bought = user_history(uid)
+
+    def respond(items: list[dict], source: str, cache: str) -> dict:
+        return {
+            "user_id": uid,
+            "source": source,
+            "cache": cache,
+            "items": items,
+            "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
+        }
+
+    # La clave incluye el historial: si llega un evento, la clave cambia y se recalcula
+    key = (uid, n, tuple(sorted(views.items())), tuple(sorted(bought)))
+    if CACHE_TTL > 0:
+        cached = cache_get(key)
+        if cached is not None:
+            return respond(cached, "model", "hit")
 
     # Postprocesamiento: no recomendar lo que el usuario ya compro
     cand = CATALOG[~CATALOG["product_id"].isin(bought)].copy()
@@ -157,12 +197,9 @@ def recommend(request: Request, user_id: UUID, n: int = Query(10, ge=1, le=20)):
          "price": float(r.price), "times_viewed": int(r.times_viewed)}
         for r in top.itertuples()
     ]
-    return {
-        "user_id": str(user_id),
-        "source": source,
-        "items": items,
-        "latency_ms": round((time.perf_counter() - t0) * 1000, 1),
-    }
+    if source == "model" and CACHE_TTL > 0:
+        cache_set(key, items)  # el fallback nunca se guarda
+    return respond(items, source, "miss")
 
 
 class Event(BaseModel):
