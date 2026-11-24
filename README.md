@@ -102,4 +102,3 @@ API_KEY=<clave> locust -f tests/locustfile.py --headless -u 50 -r 5 -t 2m --host
 
 ## Declaración de uso de IA
 
-Completar con las herramientas de IA utilizadas, para qué y cómo se verificó el resultado.
