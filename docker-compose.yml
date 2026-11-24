@@ -63,6 +63,7 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./certs:/certs:ro
+      - ./web:/usr/share/nginx/html:ro
     depends_on:
       - api
     restart: unless-stopped
