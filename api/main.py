@@ -248,3 +248,13 @@ def post_event(request: Request, event: Event):
     except Exception:
         raise HTTPException(status_code=503, detail="Cola de eventos no disponible")
     return {"queued": True}
+
+@app.get("/products", tags=["Catalogo"], dependencies=[Depends(check_key)])
+@limiter.limit(RATE_LIMIT)
+def products(request: Request, limit: int = Query(300, ge=1, le=300)):
+    """Catálogo de candidatos (ordenado por popularidad). Lo usa la tienda de demostración."""
+    items = [
+        {"product_id": int(r.product_id), "brand": r.brand, "category": r.category, "price": float(r.price)}
+        for r in CATALOG.head(limit).itertuples()
+    ]
+    return {"total": int(len(CATALOG)), "items": items}
