@@ -3,6 +3,7 @@
 Endpoints:
   GET  /health                      estado del servicio
   GET  /recommendations/{user_id}   top-N productos recomendados (modelo en SageMaker)
+  GET  /products                    catalogo de productos candidatos
   POST /events                      publica un evento (view/cart/purchase) en RabbitMQ
 
 Seguridad: API Key (header x-api-key), rate limiting por IP, validacion estricta de
@@ -200,6 +201,18 @@ def recommend(request: Request, user_id: UUID, n: int = Query(10, ge=1, le=20)):
     if source == "model" and CACHE_TTL > 0:
         cache_set(key, items)  # el fallback nunca se guarda
     return respond(items, source, "miss")
+
+
+@app.get("/products", tags=["Catalogo"], dependencies=[Depends(check_key)])
+@limiter.limit(RATE_LIMIT)
+def list_products(request: Request, limit: int = Query(300, ge=1, le=300), offset: int = Query(0, ge=0)):
+    """Catalogo de productos candidatos (los 300 mas vistos), ordenado por popularidad."""
+    page = CATALOG.iloc[offset: offset + limit]
+    items = [
+        {"product_id": int(r.product_id), "brand": r.brand, "category": r.category, "price": float(r.price)}
+        for r in page.itertuples()
+    ]
+    return {"total": int(len(CATALOG)), "items": items}
 
 
 class Event(BaseModel):

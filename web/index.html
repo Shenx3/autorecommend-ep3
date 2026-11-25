@@ -9,6 +9,7 @@
 <style>
 :root{--navy:#0b2545;--navy2:#16407a;--orange:#ff7a1a;--orange2:#e8650a;--bg:#f2f5fa;--card:#fff;--ink:#12202e;--muted:#5f6f82;--line:#e1e7ef;--ok:#0c7a5c;--okbg:#e4f5ef;--warn:#9a5700;--warnbg:#fff1dc;--err:#b3261e;--errbg:#fde8e6;color-scheme:light}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 body{margin:0;background:radial-gradient(900px 380px at 85% -80px,#dfe9f8,transparent),var(--bg);color:var(--ink);font:16px/1.5 "Plus Jakarta Sans","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 button,input{font:inherit}button{cursor:pointer}
 :focus-visible{outline:3px solid #ff7a1a88;outline-offset:2px}
@@ -22,7 +23,11 @@ header{position:sticky;top:0;z-index:4;background:rgba(11,37,69,.96);backdrop-fi
 .hbtn{background:#ffffff14;color:#fff;border:1px solid #ffffff33;border-radius:12px;padding:9px 15px;white-space:nowrap;font-weight:600;transition:background .15s}.hbtn:hover{background:#ffffff26}
 nav{background:var(--navy2)}
 nav div{max-width:1160px;margin:0 auto;padding:0 20px;display:flex;gap:6px;font-size:.92rem;overflow-x:auto;white-space:nowrap;color:#fff;font-weight:500}
-nav span{padding:10px 12px;border-bottom:3px solid transparent;opacity:.85}nav span:first-child{border-color:var(--orange);opacity:1}
+nav .tab{background:none;border:0;border-bottom:3px solid transparent;color:#fff;padding:10px 14px;font-weight:600;opacity:.85}
+nav .tab:hover{opacity:1}
+nav .tab.on{border-color:var(--orange);opacity:1}
+.dot{display:none;width:8px;height:8px;border-radius:50%;background:var(--orange);margin-left:7px;vertical-align:middle}
+.dot.show{display:inline-block}
 main{max-width:1160px;margin:0 auto;padding:26px 20px 70px}
 .banner{position:relative;overflow:hidden;background:linear-gradient(110deg,var(--navy) 30%,var(--navy2));color:#fff;border-radius:22px;padding:34px 36px;margin-bottom:28px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;align-items:center}
 .banner:after{content:"";position:absolute;right:-70px;top:-90px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,#ff7a1a55,transparent 68%)}
@@ -37,14 +42,17 @@ main{max-width:1160px;margin:0 auto;padding:26px 20px 70px}
 .chip{display:inline-flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 13px;font-size:.84rem;font-weight:600;color:var(--muted)}
 .chip.hit{background:var(--okbg);border-color:#b6e3d4;color:var(--ok)}.chip.miss{background:var(--warnbg);border-color:#f3d3a2;color:var(--warn)}
 .chip.hit:before,.chip.miss:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
-.note{padding:13px 16px;border-radius:12px;margin-bottom:16px;background:#e8eef7;color:var(--navy);font-weight:500}
+.note{padding:13px 16px;border-radius:12px;margin-bottom:16px;background:#e8eef7;color:var(--navy);font-weight:500;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .note.err{background:var(--errbg);color:var(--err)}.note.ok{background:var(--okbg);color:var(--ok)}
+.note button{border:1.5px solid currentColor;background:transparent;color:inherit;border-radius:9px;padding:4px 12px;font-weight:700}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
 .prod{background:var(--card);border-radius:18px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 1px 2px #0b254512,0 10px 26px -18px #0b254566}
 .tile{height:138px;display:flex;align-items:center;justify-content:center;position:relative;background:radial-gradient(circle at 30% 20%,#fff9,transparent 60%),hsl(var(--h,215) 60% 91%)}
 .ico{font-size:3.6rem;filter:drop-shadow(0 8px 10px #0b254533)}
 .rank{position:absolute;top:10px;left:10px;background:var(--navy);color:#fff;border-radius:999px;font-size:.78rem;font-weight:700;padding:2px 11px}
 .best{position:absolute;top:10px;right:10px;background:var(--orange);color:#fff;border-radius:999px;font-size:.76rem;font-weight:700;padding:2px 11px}
+.tag{position:absolute;bottom:10px;left:10px;background:var(--ok);color:#fff;border-radius:999px;font-size:.76rem;font-weight:700;padding:2px 11px}
+.tag.done{background:var(--navy)}
 .pbody{padding:14px 16px 16px;display:flex;flex-direction:column;gap:4px;flex:1}
 .pname{font-weight:700;font-size:1.05rem;letter-spacing:-.01em;line-height:1.25}
 .pmeta{color:var(--muted);font-size:.84rem}
@@ -53,11 +61,17 @@ main{max-width:1160px;margin:0 auto;padding:26px 20px 70px}
 .acts button{flex:1;border-radius:10px;padding:9px;font-weight:700;border:1.5px solid #cdd6e2;background:var(--card);color:var(--navy);transition:background .15s,border-color .15s}
 .acts button:hover{border-color:var(--navy);background:#f3f6fb}
 .acts .buy{background:var(--orange);border-color:var(--orange);color:#fff}.acts .buy:hover{background:var(--orange2);border-color:var(--orange2)}
-.acts button:disabled{opacity:.55;cursor:wait}
-@media(min-width:900px){.prod:first-child{grid-column:span 2;flex-direction:row}.prod:first-child .tile{height:auto;width:46%}.prod:first-child .ico{font-size:5.2rem}.prod:first-child .pbody{padding:22px}.prod:first-child .pname{font-size:1.4rem}.prod:first-child .price{font-size:2.1rem}}
+.acts button:disabled{opacity:.55;cursor:not-allowed}
+@media(min-width:900px){#grid .prod:first-child{grid-column:span 2;flex-direction:row}#grid .prod:first-child .tile{height:auto;width:46%}#grid .prod:first-child .ico{font-size:5.2rem}#grid .prod:first-child .pbody{padding:22px}#grid .prod:first-child .pname{font-size:1.4rem}#grid .prod:first-child .price{font-size:2.1rem}}
 .sk{height:300px;border-radius:18px;background:linear-gradient(90deg,#e6ebf3 25%,#f4f6fa 50%,#e6ebf3 75%);background-size:200% 100%;animation:sh 1.2s infinite}
 @keyframes sh{to{background-position:-200% 0}}
 .empty{color:var(--muted);padding:44px 0;text-align:center}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.cat{border:1.5px solid var(--line);background:var(--card);border-radius:999px;padding:5px 14px;font-weight:600;font-size:.86rem;color:var(--muted)}
+.cat:hover{border-color:var(--navy);color:var(--navy)}
+.cat.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.more{display:block;margin:24px auto 0;padding:11px 28px;border-radius:12px;border:1.5px solid var(--navy);background:var(--card);color:var(--navy);font-weight:700}
+.more:hover{background:#f3f6fb}
 aside{position:fixed;top:0;right:0;bottom:0;width:min(380px,100%);background:var(--card);box-shadow:-14px 0 40px #0b25454d;padding:22px;overflow-y:auto;transform:translateX(105%);transition:transform .25s;z-index:6}
 aside.open{transform:none}
 aside h3{margin:0 0 4px;font-size:1.3rem;letter-spacing:-.02em;font-weight:800}
@@ -85,25 +99,39 @@ aside input:focus{border-color:var(--orange);background:#fff}
 <header>
   <div class="top">
     <div class="logo">Shop<span>Fast</span></div>
-    <div class="search"><input id="q" placeholder="Buscar en los recomendados" aria-label="Buscar"><button type="button" id="qbtn">Buscar</button></div>
+    <div class="search"><input id="q" placeholder="Buscar productos" aria-label="Buscar"><button type="button" id="qbtn">Buscar</button></div>
     <button type="button" class="hbtn" id="cartbtn">Carro (<span id="cart">0</span>)</button>
     <button type="button" class="hbtn" id="demobtn">Modo demo</button>
   </div>
-  <nav><div><span>Computación</span><span>Celulares</span><span>Audio</span><span>Televisores</span><span>Electrohogar</span><span>Ofertas</span></div></nav>
+  <nav><div>
+    <button type="button" class="tab on" data-view="home">Recomendados<i class="dot" id="dot"></i></button>
+    <button type="button" class="tab" data-view="all">Todos los productos</button>
+  </div></nav>
 </header>
 
 <main>
-  <div class="banner">
-    <div>
-      <h1>Recomendados para ti</h1>
-      <p>Productos elegidos por nuestro modelo según lo que has visto y comprado.</p>
-    </div>
-    <div class="who">Cliente <b id="who">sin seleccionar</b></div>
-  </div>
-  <div class="bar" id="bar"><h2>Tu selección</h2></div>
   <div id="msg"></div>
-  <div class="grid" id="grid"></div>
-  <p class="empty" id="empty">Abre el Modo demo, ingresa la API key y carga las recomendaciones de un cliente.</p>
+
+  <section id="v-home">
+    <div class="banner">
+      <div>
+        <h1>Recomendados para ti</h1>
+        <p>Productos elegidos por nuestro modelo según lo que has visto y comprado.</p>
+      </div>
+      <div class="who">Cliente <b id="who">sin seleccionar</b></div>
+    </div>
+    <div class="bar" id="bar"><h2>Tu selección</h2></div>
+    <div class="grid" id="grid"></div>
+    <p class="empty" id="empty">Abre el Modo demo, ingresa la API key y carga las recomendaciones de un cliente.</p>
+  </section>
+
+  <section id="v-all" hidden>
+    <div class="bar"><h2>Todos los productos</h2><span class="chip" id="count">0 productos</span></div>
+    <div class="cats" id="cats"></div>
+    <div class="grid" id="grid2"></div>
+    <p class="empty" id="empty2">Conecta la API en el Modo demo para ver el catálogo.</p>
+    <button type="button" class="more" id="more" hidden>Mostrar más</button>
+  </section>
 </main>
 
 <aside id="panel" aria-label="Modo demo">
@@ -115,14 +143,14 @@ aside input:focus{border-color:var(--orange);background:#fff}
   <input id="key" type="password" autocomplete="off">
   <label for="uid">ID de cliente (UUID)</label>
   <div class="row"><input id="uid" autocomplete="off"><button type="button" id="newid">Nuevo</button></div>
-  <label for="n">Cantidad de productos (1 a 20)</label>
+  <label for="n">Cantidad de recomendados (1 a 20)</label>
   <input id="n" type="number" min="1" max="20" value="10">
   <div class="btns">
-    <button type="button" class="primary" id="go">Cargar recomendaciones</button>
+    <button type="button" class="primary" id="go">Conectar y cargar</button>
     <button type="button" id="twice">Probar la caché (2 llamadas)</button>
     <button type="button" id="close">Cerrar</button>
   </div>
-  <p class="links">En cada producto, <b>Ver</b> y <b>Comprar</b> publican un evento en RabbitMQ y la lista se actualiza: lo comprado deja de recomendarse.</p>
+  <p class="links">En <b>Todos los productos</b>, <b>Ver</b> y <b>Comprar</b> publican un evento en RabbitMQ y la pestaña <b>Recomendados</b> se actualiza sola: lo comprado deja de recomendarse.</p>
   <div class="links"><a id="docs" href="#" target="_blank" rel="noopener">Abrir Swagger (/docs)</a></div>
   <div class="log">
     <table><thead><tr><th>Hora</th><th>Est.</th><th>Caché</th><th>API</th><th>Total</th></tr></thead><tbody id="hist"><tr><td colspan="5">Sin llamadas.</td></tr></tbody></table>
@@ -132,11 +160,21 @@ aside input:focus{border-color:var(--orange);background:#fff}
 <script>
 const $ = id => document.getElementById(id);
 function el(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
-const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ---- Estado ----
+const PAGE = 24;
+let view = 'home', cart = 0;
+let current = [];            // recomendados actuales (respuesta de la API)
+let fresh = new Set();       // ids que aparecieron en la última actualización
+let catalog = [];            // todos los productos (GET /products)
+let catFilter = '', shown = PAGE;
+const bought = new Set();    // comprados en esta sesión (solo para la interfaz)
+const seen = new Map();      // vistas en esta sesión (solo para la interfaz)
+let refreshTimer = null;
 
 function newId(){ try { $('uid').value = crypto.randomUUID(); } catch (e) { $('uid').value = '00000000-0000-4000-8000-' + String(Date.now()).padStart(12, '0').slice(-12); } }
 newId();
-$('newid').onclick = newId;
+$('newid').onclick = () => { newId(); bought.clear(); seen.clear(); current = []; fresh = new Set(); $('who').textContent = 'sin seleccionar'; $('bar').textContent = ''; $('bar').appendChild(el('h2', '', 'Tu selección')); drawGrid(); drawCatalog(); };
 if (location.protocol.startsWith('http')) $('base').value = location.origin;
 function syncDocs(){ const b = $('base').value.trim().replace(/\/+$/, ''); $('docs').href = b ? b + '/docs' : '#'; }
 $('base').oninput = syncDocs; syncDocs();
@@ -146,7 +184,7 @@ $('demobtn').onclick = () => panel.classList.toggle('open');
 $('close').onclick = () => panel.classList.remove('open');
 panel.classList.add('open');
 
-// Categorías reales del catálogo: [fragmento, nombre, ícono]
+// ---- Categorías reales del catálogo: [fragmento, nombre, ícono] ----
 const CATS = [
   ['videocards','Tarjeta de video','🎮'],['cpu','Procesador','🧠'],['motherboard','Placa madre','🔧'],['power_supply','Fuente de poder','🔌'],
   ['cooler','Cooler','❄️'],['hdd','Disco duro','💾'],['network_adapter','Adaptador de red','📶'],['wifi','Wi-Fi','📶'],
@@ -161,36 +199,54 @@ const CATS = [
 function catInfo(cat){ const c = String(cat || '').toLowerCase(); for (const [k, n, i] of CATS) if (c.includes(k)) return { name: n, icon: i }; return { name: 'Otros', icon: '📦' }; }
 function tint(s){ let h = 0; String(s || 'x').split('').forEach(ch => h = (h * 31 + ch.charCodeAt(0)) % 360); return h; }
 function cap(s){ s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+function toProd(it){
+  const ci = catInfo(it.category), brand = it.brand && it.brand !== 'unknown' ? it.brand : '';
+  return { id: it.product_id, brand, cat: ci, name: (cap(brand) + ' ' + ci.name).trim(), price: Number(it.price) || 0, viewed: it.times_viewed || 0 };
+}
 
-let cart = 0, current = [];
-function skeleton(){ const g = $('grid'); g.textContent = ''; $('empty').style.display = 'none'; for (let i = 0; i < Math.min(conn().n, 8); i++) g.appendChild(el('div', 'sk')); }
+// ---- Pestañas ----
+function showView(v){
+  view = v;
+  $('v-home').hidden = v !== 'home'; $('v-all').hidden = v !== 'all';
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === v));
+  if (v === 'home'){ $('dot').classList.remove('show'); drawGrid(); }
+  else { drawCatalog(); if (!catalog.length) loadCatalog(); }
+  try { history.replaceState(null, '', '#' + v); } catch (e) {}
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showView(t.dataset.view));
+if (location.hash === '#all') showView('all');
 
+// ---- Tarjeta de producto (la usan las dos pestañas) ----
+function buildCard(p, o){
+  const card = el('div', 'prod');
+  const tile = el('div', 'tile'); tile.appendChild(el('span', 'ico', p.cat.icon)); tile.style.setProperty('--h', tint(p.brand + p.cat.name));
+  if (o.rank){ tile.appendChild(el('span', 'rank', '#' + o.rank)); if (o.rank === 1) tile.appendChild(el('span', 'best', 'Mejor opción para ti')); }
+  if (o.isNew) tile.appendChild(el('span', 'tag', 'Nuevo en tu lista'));
+  if (o.bought) tile.appendChild(el('span', 'tag done', 'Comprado'));
+  card.appendChild(tile);
+  const b = el('div', 'pbody');
+  b.appendChild(el('div', 'pname', p.name));
+  const n = o.rank ? p.viewed : (seen.get(p.id) || 0);
+  b.appendChild(el('div', 'pmeta', (o.rank ? '' : p.cat.name + ' · ') + 'Ref. ' + p.id + (n ? ' · visto ' + n + (n === 1 ? ' vez' : ' veces') : '')));
+  b.appendChild(el('div', 'price', 'US$ ' + p.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })));
+  const acts = el('div', 'acts');
+  const view = el('button', '', 'Ver'); view.type = 'button'; view.onclick = () => sendEvent(p.id, 'view', acts);
+  const buy = el('button', 'buy', o.bought ? 'Comprado' : 'Comprar'); buy.type = 'button'; buy.disabled = !!o.bought; buy.onclick = () => sendEvent(p.id, 'purchase', acts);
+  acts.appendChild(view); acts.appendChild(buy); b.appendChild(acts);
+  card.appendChild(b); return card;
+}
+function matches(p, q){ return !q || (p.name + ' ' + p.brand + ' ' + p.cat.name).toLowerCase().includes(q); }
+
+// ---- Pestaña Recomendados ----
 function drawGrid(){
   const grid = $('grid'); grid.textContent = '';
   const q = $('q').value.trim().toLowerCase();
-  const list = current.filter(p => !q || (p.name + ' ' + p.brand + ' ' + p.cat.name).toLowerCase().includes(q));
+  const list = current.map((p, i) => Object.assign({ rank: i + 1 }, p)).filter(p => matches(p, q));
   $('empty').style.display = list.length ? 'none' : 'block';
   if (!list.length) $('empty').textContent = current.length ? 'Ningún producto coincide con la búsqueda.' : 'Abre el Modo demo, ingresa la API key y carga las recomendaciones de un cliente.';
-  list.forEach(p => {
-    const card = el('div', 'prod');
-    const tile = el('div', 'tile'); tile.appendChild(el('span', 'ico', p.cat.icon)); tile.style.setProperty('--h', tint(p.brand + p.cat.name));
-    tile.appendChild(el('span', 'rank', '#' + p.rank)); if (p.rank === 1) tile.appendChild(el('span', 'best', 'Mejor opción para ti'));
-    card.appendChild(tile);
-    const b = el('div', 'pbody');
-    b.appendChild(el('div', 'pname', p.name));
-    b.appendChild(el('div', 'pmeta', 'Ref. ' + p.id + (p.viewed ? ' · visto ' + p.viewed + (p.viewed === 1 ? ' vez' : ' veces') : '')));
-    b.appendChild(el('div', 'price', 'US$ ' + p.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })));
-    const acts = el('div', 'acts');
-    const view = el('button', '', 'Ver'); view.type = 'button'; view.onclick = () => sendEvent(p.id, 'view', acts);
-    const buy = el('button', 'buy', 'Comprar'); buy.type = 'button'; buy.onclick = () => sendEvent(p.id, 'purchase', acts);
-    acts.appendChild(view); acts.appendChild(buy); b.appendChild(acts);
-    card.appendChild(b); grid.appendChild(card);
-  });
+  list.forEach(p => grid.appendChild(buildCard(p, { rank: p.rank, isNew: fresh.has(p.id) })));
 }
-$('q').oninput = drawGrid;
-$('qbtn').onclick = drawGrid;
-
-function setMsg(text, kind){ const m = $('msg'); m.textContent = ''; if (text) m.appendChild(el('div', 'note' + (kind ? ' ' + kind : ''), text)); }
+function skeleton(){ const g = $('grid'); g.textContent = ''; $('empty').style.display = 'none'; for (let i = 0; i < Math.min(conn().n, 8); i++) g.appendChild(el('div', 'sk')); }
 
 function setBar(data, info){
   const bar = $('bar'); bar.textContent = ''; bar.appendChild(el('h2', '', 'Tu selección'));
@@ -201,12 +257,53 @@ function setBar(data, info){
   bar.appendChild(el('span', 'chip ' + (data.source === 'model' ? 'hit' : 'miss'), data.source === 'model' ? 'Modelo en SageMaker' : 'Respaldo: Top Sellers'));
 }
 
+// ---- Pestaña Todos los productos ----
+function buildCats(){
+  const box = $('cats'); box.textContent = '';
+  const counts = {}; catalog.forEach(p => counts[p.cat.name] = (counts[p.cat.name] || 0) + 1);
+  const names = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const mk = (label, value) => { const b = el('button', 'cat' + (catFilter === value ? ' on' : ''), label); b.type = 'button'; b.onclick = () => { catFilter = value; shown = PAGE; buildCats(); drawCatalog(); }; box.appendChild(b); };
+  mk('Todos (' + catalog.length + ')', '');
+  names.forEach(n => mk(n + ' (' + counts[n] + ')', n));
+}
+function drawCatalog(){
+  const grid = $('grid2'); grid.textContent = '';
+  const q = $('q').value.trim().toLowerCase();
+  const list = catalog.filter(p => (!catFilter || p.cat.name === catFilter) && matches(p, q));
+  $('count').textContent = list.length + (list.length === 1 ? ' producto' : ' productos');
+  $('empty2').style.display = list.length ? 'none' : 'block';
+  if (!list.length) $('empty2').textContent = catalog.length ? 'Ningún producto coincide con el filtro.' : 'Conecta la API en el Modo demo para ver el catálogo.';
+  list.slice(0, shown).forEach(p => grid.appendChild(buildCard(p, { bought: bought.has(p.id) })));
+  $('more').hidden = list.length <= shown;
+}
+$('more').onclick = () => { shown += PAGE; drawCatalog(); };
+function redraw(){ shown = PAGE; if (view === 'home') drawGrid(); else drawCatalog(); }
+$('q').oninput = redraw;
+$('qbtn').onclick = redraw;
+
+// ---- Mensajes e historial ----
+function setMsg(text, kind, action){
+  const m = $('msg'); m.textContent = '';
+  if (!text) return;
+  const n = el('div', 'note' + (kind ? ' ' + kind : ''));
+  n.appendChild(el('span', '', text));
+  if (action){ const b = el('button', '', action.label); b.type = 'button'; b.onclick = action.fn; n.appendChild(b); }
+  m.appendChild(n);
+}
 let histCount = 0;
 function addHistory(h){
   const tb = $('hist'); if (!histCount) tb.textContent = ''; histCount++;
-  const tr = el('tr'); [h.time, h.status, h.cache, h.server, h.total].forEach((v, i) => { const td = el('td'); if (i === 1 || i === 2) td.appendChild(el('span', 'pill ' + (i === 1 ? (v.startsWith('2') ? 'hit' : 'bad') : (v === 'hit' ? 'hit' : v === 'miss' ? 'miss' : '')), v)); else td.textContent = v; tr.appendChild(td); }); tb.insertBefore(tr, tb.firstChild);
+  const tr = el('tr');
+  [h.time, h.status, h.cache, h.server, h.total].forEach((v, i) => {
+    const td = el('td');
+    if (i === 1 || i === 2) td.appendChild(el('span', 'pill ' + (i === 1 ? (v.startsWith('2') ? 'hit' : 'bad') : (v === 'hit' ? 'hit' : v === 'miss' ? 'miss' : '')), v));
+    else td.textContent = v;
+    tr.appendChild(td);
+  });
+  tb.insertBefore(tr, tb.firstChild);
 }
 
+// ---- API ----
 function conn(){
   return { base: $('base').value.trim().replace(/\/+$/, ''), key: $('key').value.trim(), uid: $('uid').value.trim(), n: Math.min(20, Math.max(1, parseInt($('n').value, 10) || 10)) };
 }
@@ -218,46 +315,78 @@ function httpError(status){
 }
 const NETWORK_MSG = 'No se pudo conectar con la API. Revisa la dirección y que la EC2 esté encendida. Si abriste este archivo desde tu computador, abre la dirección de la API una vez para aceptar el certificado y habilita CORS en la API.';
 
-async function callApi(){
+async function callApi(opts){
+  opts = opts || {};
   const c = conn();
   if (!c.base || !c.key || !c.uid){ setMsg('Completa la dirección de la API, la API key y el ID de cliente.', 'err'); return false; }
   const t0 = performance.now();
-  skeleton();
+  if (!opts.silent && view === 'home') skeleton();
   try {
     const r = await fetch(c.base + '/recommendations/' + encodeURIComponent(c.uid) + '?n=' + c.n, { headers: { 'x-api-key': c.key } });
     const total = performance.now() - t0;
     let data = null; try { data = await r.json(); } catch (e) {}
     addHistory({ time: new Date().toLocaleTimeString('es-CL'), status: String(r.status), cache: data && data.cache ? data.cache : '-', server: data && data.latency_ms !== undefined ? Math.round(data.latency_ms) + ' ms' : '-', total: Math.round(total) + ' ms' });
     if (!r.ok || !data || !Array.isArray(data.items)){ drawGrid(); setMsg(httpError(r.status), 'err'); return false; }
-    setMsg('');
+    if (!opts.silent) setMsg('');
     $('who').textContent = c.uid.slice(0, 8) + '…';
-    current = data.items.map((it, i) => {
-      const ci = catInfo(it.category), brand = it.brand && it.brand !== 'unknown' ? it.brand : '';
-      return { id: it.product_id, brand, cat: ci, name: (cap(brand) + ' ' + ci.name).trim(), price: Number(it.price) || 0, viewed: it.times_viewed || 0, rank: i + 1 };
-    });
+    current = data.items.map(toProd);
     setBar(data, { status: r.status, total });
     drawGrid();
     return true;
   } catch (e) { drawGrid(); setMsg(NETWORK_MSG, 'err'); return false; }
 }
 
+async function loadCatalog(){
+  const c = conn();
+  if (!c.base || !c.key) return false;
+  try {
+    const r = await fetch(c.base + '/products?limit=300', { headers: { 'x-api-key': c.key } });
+    if (r.status === 404){ setMsg('La API aún no tiene el endpoint /products. Actualiza api/main.py y reconstruye la API.', 'err'); return false; }
+    if (!r.ok){ setMsg(httpError(r.status), 'err'); return false; }
+    const d = await r.json();
+    catalog = d.items.map(toProd);
+    buildCats(); drawCatalog();
+    return true;
+  } catch (e) { setMsg(NETWORK_MSG, 'err'); return false; }
+}
+
+// Tras un evento, la pestaña Recomendados se actualiza sola (el consumidor tarda un instante en guardarlo)
+function scheduleRefresh(){ clearTimeout(refreshTimer); refreshTimer = setTimeout(refreshRecs, 3000); }
+async function refreshRecs(){
+  const prev = new Set(current.map(p => p.id));
+  const ok = await callApi({ silent: true });
+  if (!ok) return;
+  fresh = new Set(current.map(p => p.id).filter(id => prev.size && !prev.has(id)));
+  drawGrid();
+  const nuevos = fresh.size ? fresh.size + (fresh.size === 1 ? ' producto nuevo' : ' productos nuevos') + ' en tu lista.' : 'Tus recomendaciones se actualizaron.';
+  if (view === 'all'){
+    $('dot').classList.add('show');
+    setMsg(nuevos, 'ok', { label: 'Ver recomendados', fn: () => { setMsg(''); showView('home'); } });
+  } else setMsg(nuevos, 'ok');
+}
+
 async function sendEvent(pid, type, acts){
   const c = conn();
   if (!c.base || !c.key || !c.uid){ setMsg('Completa la conexión en el Modo demo.', 'err'); return; }
   acts.querySelectorAll('button').forEach(b => b.disabled = true);
+  let ok = false;
   try {
     const r = await fetch(c.base + '/events', { method: 'POST', headers: { 'x-api-key': c.key, 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: c.uid, product_id: Number(pid), event_type: type }) });
     if (r.status !== 202){ setMsg(r.status === 503 ? 'La cola de eventos (RabbitMQ) no está disponible (503).' : httpError(r.status), 'err'); return; }
-    if (type === 'purchase'){ cart++; $('cart').textContent = cart; }
+    ok = true;
+    if (type === 'purchase'){ cart++; $('cart').textContent = cart; bought.add(pid); }
+    else seen.set(pid, (seen.get(pid) || 0) + 1);
     setMsg('Evento "' + type + '" publicado en RabbitMQ (202). Actualizando recomendaciones…', 'ok');
-    await sleep(3000);  // el consumidor procesa la cola y guarda el historial
-    await callApi();
+    scheduleRefresh();
   } catch (e) { setMsg(NETWORK_MSG, 'err'); }
-  finally { acts.querySelectorAll('button').forEach(b => b.disabled = false); }
+  finally {
+    if (ok && view === 'all') drawCatalog();
+    else acts.querySelectorAll('button').forEach(b => b.disabled = false);
+  }
 }
 
 async function run(fn){ const b = [$('go'), $('twice')]; b.forEach(x => x.disabled = true); try { await fn(); } finally { b.forEach(x => x.disabled = false); } }
-$('go').onclick = () => run(callApi);
+$('go').onclick = () => run(async () => { const ok = await callApi(); if (ok && !catalog.length) await loadCatalog(); });
 $('twice').onclick = () => run(async () => { if (await callApi()) await callApi(); });
 </script>
 </body>
